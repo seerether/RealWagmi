@@ -1,0 +1,21 @@
+function _addUnderlyingPool(
+    uint24 _fee,
+    address _token0,
+    address _token1,
+    IUniswapV3Factory _factory
+) private {
+    require(_fee != 0, "Invalid fee"); // Add validation for non-zero fee
+    require(_fee <= 10000, "Invalid fee"); // Add validation for fee within the expected range
+
+    address poolAddress = _factory.getPool(_token0, _token1, _fee);
+
+    if (poolAddress == address(0)) {
+        revert InvalidFee(_fee);
+    }
+    underlyingTrustedPools[_fee] = UnderlyingPool({
+        tickSpacing: IUniswapV3Pool(poolAddress).tickSpacing(),
+        poolAddress: poolAddress
+    });
+    fees.push(_fee);
+    emit TrustedPoolAdded(_fee, poolAddress);
+}
