@@ -1,0 +1,13 @@
+function _estimateWithdrawalLp(
+    uint256 reserve0,
+    uint256 reserve1,
+    uint256 _totalSupply,
+    uint256 amount0,
+    uint256 amount1
+) private pure returns (uint256 shareAmount) {
+    uint256 shareAmountBeforeLosses = ((amount0 * _totalSupply) / reserve0 + (amount1 * _totalSupply) / reserve1) / 2;
+    uint256 loss0 = (reserve0 * shareAmountBeforeLosses) / _totalSupply - amount0;
+    uint256 loss1 = (reserve1 * shareAmountBeforeLosses) / _totalSupply - amount1;
+    shareAmount = shareAmountBeforeLosses - (loss0 + loss1) / 2;
+}
+}
