@@ -1,0 +1,28 @@
+function estimateClaim(
+    uint256 pid,
+    address userAddress
+)
+    external
+    view
+    checkPid(pid)
+    returns (uint256 lpAmountRemoved, uint256 amount0, uint256 amount1)
+{
+    PoolInfo memory pool = poolInfo[pid];
+    UserInfo memory user = userInfo[pid][userAddress];
+    if (user.shares > 0) {
+        (
+            uint256 reserve0,
+            uint256 reserve1,
+            uint256 pendingFee0,
+            uint256 pendingFee1
+        ) = IMultipool(pool.multipool).getReserves();
+        uint256 _totalSupply = IERC20(pool.multipool).totalSupply();
+        IMultipool.FeeGrowth memory feesGrow = IMultipool(pool.multipool).feesGrowthInsideLastX128();
+        (uint256 fee0, uint256 fee1) = _calcFees(feesGrow, user, user.shares, reserve0, reserve1, _totalSupply);
+        fee0 += (pendingFee0 * user.shares) / _totalSupply;
+        fee1 += (pendingFee1 * user.shares) / _totalSupply;
+        lpAmountRemoved = _estimateWithdrawalLp(reserve0, reserve1, _totalSupply, fee0, fee1);
+        amount0 = (reserve0 * lpAmountRemoved) / _totalSupply;
+        amount1 = (reserve1 * lpAmountRemoved) / _totalSupply;
+    }
+}
