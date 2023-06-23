@@ -1,0 +1,35 @@
+function withdraw(uint256 pid, uint256 amount, uint256 deviationBP) external checkPid(pid) {
+    PoolInfo memory pool = poolInfo[pid];
+    UserInfo storage user = userInfo[pid][msg.sender];
+    (
+        uint256 reserve0,
+        uint256 reserve1,
+        IMultipool.FeeGrowth memory feesGrow,
+        uint256 _totalSupply
+    ) = IMultipool(pool.multipool).snapshot();
+
+    require(user.shares > 0, "user.shares is 0");
+    require(_totalSupply > 0, "sharesTotal is 0");
+
+    if (amount > user.shares) {
+        amount = user.shares; // Ensure amount doesn't exceed user's available shares
+    }
+
+    uint256 lpAmount;
+    {
+        (uint256 fee0, uint256 fee1) = _calcFees(feesGrow, user);
+        lpAmount = _estimateWithdrawalLp(reserve0, reserve1, _totalSupply, fee0, fee1);
+    }
+    user.shares -= lpAmount;
+
+    _withdrawFee(pool, lpAmount, reserve0, reserve1, _totalSupply, deviationBP);
+
+    uint256 sharesRemoved = lpAmount; // Use the actual withdrawn shares
+    user.shares -= sharesRemoved;
+
+    user.feeDebt0 = feesGrow.accPerShare0;
+    user.feeDebt1 = feesGrow.accPerShare1;
+    _pay(pool.multipool, address(this), msg.sender, sharesRemoved);
+
+    emit Withdraw(msg.sender, pid, amount);
+}
