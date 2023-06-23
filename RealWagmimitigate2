@@ -1,0 +1,22 @@
+function withdraw(uint256 pid, uint256 amount, uint256 deviationBP) external checkPid(pid) {
+    // ...
+
+    if (amount > user.shares) {
+        // withdraw witout claiming
+        amount = user.shares;
+    } else if (amount < user.shares) {
+        uint256 lpAmount;
+        {
+            (uint256 fee0, uint256 fee1) = _calcFees(feesGrow, user);
+            lpAmount = _estimateWithdrawalLp(reserve0, reserve1, _totalSupply, fee0, fee1);
+        }
+        user.shares -= lpAmount;
+        _withdrawFee(pool, lpAmount, reserve0, reserve1, _totalSupply, deviationBP);
+    }
+
+    // Remove the following line
+    // uint256 sharesRemoved = amount > user.shares ? user.shares : amount;
+    // user.shares -= sharesRemoved;
+
+    // ...
+}
